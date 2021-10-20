@@ -1,4 +1,4 @@
 import chip8
 
-with open('test_opcode.ch8', 'rb') as f:
-    data = f.read()
+test = chip8.Chip8('SPACE-INVADER')
+test.start()

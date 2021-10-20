@@ -4,6 +4,28 @@ import random
 class Chip8:
     # CPU
     memory = [0x0 for i in range(4 * 1024)]
+    sprites = [
+        0xF0, 0x90, 0x90, 0x90, 0xF0,
+        0x20, 0x60, 0x20, 0x20, 0x70,
+        0xF0, 0x10, 0xF0, 0x80, 0xF0,
+        0xF0, 0x10, 0xF0, 0x10, 0xF0,
+        0x90, 0x90, 0xF0, 0x10, 0x10,
+        0xF0, 0x80, 0xF0, 0x10, 0xF0,
+        0xF0, 0x80, 0xF0, 0x90, 0xF0,
+        0xF0, 0x10, 0x20, 0x40, 0x40,
+        0xF0, 0x90, 0xF0, 0x90, 0xF0,
+        0xF0, 0x90, 0xF0, 0x10, 0xF0,
+        0xF0, 0x90, 0xF0, 0x90, 0x90,
+        0xE0, 0x90, 0xE0, 0x90, 0xE0,
+        0xF0, 0x80, 0x80, 0x80, 0xF0,
+        0xE0, 0x90, 0x90, 0x90, 0xE0,
+        0xF0, 0x80, 0xF0, 0x80, 0xF0,
+        0xF0, 0x80, 0xF0, 0x80, 0x80
+    ]
+
+    for i in range(len(sprites)):
+        memory[i] = sprites[i]
+
     V = [0x0 for i in range(16)]
     index = 0x0
     pc = 0x0200
@@ -13,16 +35,27 @@ class Chip8:
     sound_timer = 0
 
     # Keyboard
+    key = 0
 
     # Display
     display = Display()
 
     # Other
     paused = False
-    speed = 10
+    speed = 100
+
+    def __init__(self, rom):
+        with open(rom, 'rb') as f:
+            for i, byte in enumerate(f.read()):
+                self.memory[i + 0x200] = byte
+
+    def start(self):
+        self.cycle()
+        self.display.root.mainloop()
 
     def cycle(self):
-        op_code = (self.ram.read(self.pc) << 8) | self.ram.read(self.pc+1)
+        op_code = (self.memory[self.pc] << 8) | self.memory[self.pc+1]
+        print(hex(op_code))
         self.pc += 2
 
         if (0xF000 & op_code) == 0x0000:
@@ -32,7 +65,7 @@ class Chip8:
 
             elif (0xFFFF & op_code) == 0x00EE:
                 # RET
-                self.sp.pop(-1)
+                self.stack.pop(-1)
 
             else:
                 pass
@@ -50,24 +83,24 @@ class Chip8:
         elif (0xF000 & op_code) == 0x3000:
             # SE Vx
             if self.V[(0x0F00 & op_code) >> 8] == (0x00FF & op_code):
-                self.PC += 2
+                self.pc += 2
 
         elif (0xF000 & op_code) == 0x4000:
             # SNE Vx
             if self.V[(0x0F00 & op_code) >> 8] != (0x00FF & op_code):
-                self.PC += 2
+                self.pc += 2
 
         elif (0xF00F & op_code) == 0x5000:
             # SE Vx, Vy
             if self.V[(0x0F00 & op_code) >> 8] == self.V[(0x00F0 & op_code) >> 4]:
-                self.PC += 2
+                self.pc += 2
 
         elif (0xF000 & op_code) == 0x6000:
             self.V[(0x0F00 & op_code) >> 8] = (0x00FF & op_code)
 
         elif (0xF000 & op_code) == 0x7000:
             self.V[(0x0F00 & op_code) >> 8] += (0x00FF & op_code)
-            self.V[(0x0F00 & op_code) >> 8] &= 0xFF
+            #self.V[(0x0F00 & op_code) >> 8] &= 0xFF
 
         elif (0xF000 & op_code) == 0x8000:
             if (0x000F & op_code) == 0x0000:
@@ -101,19 +134,19 @@ class Chip8:
                 self.V[(0x0F00 & op_code) >> 8] >>= 1
 
             elif (0x000F & op_code) == 0x000E:
-                self.V[16] = (self.V[(0x0F00 & op_code) >> 8] & 0b10000000)
+                self.V[15] = (self.V[(0x0F00 & op_code) >> 8] & 0b10000000)
                 self.V[(0x0F00 & op_code) >> 8] <<= 1
                 self.V[(0x0F00 & op_code) >> 8] &= 0x00FF
 
         elif (0xF000 & op_code) == 0x9000:
             if self.V[(0x0F00 & op_code) >> 8] != self.V[(0x00F0 & op_code) >> 4]:
-                self.PC += 2
+                self.pc += 2
 
         elif (0xF000 & op_code) == 0xA000:
             self.I = (op_code & 0x0FFF)
 
         elif (0xF000 & op_code) == 0xB000:
-            self.PC = self.V[0] + (op_code & 0x0FFF)
+            self.pc = self.V[0] + (op_code & 0x0FFF)
 
         elif (0xF000 & op_code) == 0xC000:
             self.V[(0x0F00 & op_code) >> 8] = (random.randint(0, 255) & (op_code & 0x00FF))
@@ -122,24 +155,24 @@ class Chip8:
             # DRW Vx, Vy, nibble 
             width = 8
             height = op_code & 0x000F
-            self.v[0xF] = 0
+            self.V[0xF] = 0
 
             for row in range(height):
-                sprite = self.memory(self.index + row)
+                sprite = self.memory[self.index + row]
 
-                for col in width:
-                    if (sprite & 0x80) > 0:
+                for col in range(width):
+                    if (sprite & (0b10000000 >> col)) > 0:
                         if self.display.set_pixel(self.V[(0x0F00 & op_code) >> 8] + col, self.V[(0x00F0 & op_code) >> 4] + row):
-                            self.v[0xF] = 1
+                            self.V[0xF] = 1
 
         elif (0xF000 & op_code) == 0xE000:
             if (0x00FF & op_code) == 0x009E:
                 if self.key == self.V[(0x0F00 & op_code) >> 8]:
-                    self.PC += 2
+                    self.pc += 2
 
             elif (0x00FF & op_code) == 0x00A1:
                 if self.key != self.V[(0x0F00 & op_code) >> 8]:
-                    self.PC += 2
+                    self.pc += 2
 
         elif (0xF000 & op_code) == 0xF000:
             if (0x00FF & op_code) == 0x0007:
@@ -166,9 +199,17 @@ class Chip8:
                 self.memory[self.index + 2] = int(self.V[(0x0F00 & op_code) >> 8] % 10)
 
             elif (0x00FF & op_code) == 0x0055:
-                for ri in range(self.V[(0x0F00 & op_code) >> 8]):
+                for ri in range((0x0F00 & op_code) >> 8):
                     self.memory[self.index + ri] = self.V[ri]
 
             elif (0x00FF & op_code) == 0x0065:
-                for ri in range(self.V[(0x0F00 & op_code) >> 8]):
+                for ri in range((0x0F00 & op_code) >> 8):
                     self.V[ri] = self.memory[self.index + ri]
+
+        if self.delay_timer > 0:
+            self.delay_timer -= 1
+
+        if self.sound_timer > 0:
+            self.sound_timer -= 1
+
+        self.display.root.after(self.speed, self.cycle)
