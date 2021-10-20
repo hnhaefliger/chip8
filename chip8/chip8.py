@@ -4,7 +4,7 @@ import random
 class Chip8:
     # CPU
     memory = [0x0 for i in range(4 * 1024)]
-    v = [0x0 for i in range(16)]
+    V = [0x0 for i in range(16)]
     index = 0x0
     pc = 0x0200
     stack = []
@@ -97,7 +97,8 @@ class Chip8:
                 self.V[(0x0F00 & op_code) >> 8] >>= 1
 
             elif (0x000F & op_code) == 0x0006:
-                pass
+                self.V[0xF] = self.V[(0x0F00 & op_code) >> 8] & 0x1
+                self.V[(0x0F00 & op_code) >> 8] >>= 1
 
             elif (0x000F & op_code) == 0x000E:
                 self.V[16] = (self.V[(0x0F00 & op_code) >> 8] & 0b10000000)
@@ -118,7 +119,7 @@ class Chip8:
             self.V[(0x0F00 & op_code) >> 8] = (random.randint(0, 255) & (op_code & 0x00FF))
 
         elif (0xF000 & op_code) == 0xD000:
-            # DRW Vx, Vy, nibble https://www.youtube.com/watch?v=jWpbHC6DtnU
+            # DRW Vx, Vy, nibble 
             width = 8
             height = op_code & 0x000F
             self.v[0xF] = 0
@@ -148,7 +149,7 @@ class Chip8:
                 self.V[(0x0F00 & op_code) >> 8] = self.sound_timer
 
             elif (0x00FF & op_code) == 0x0015:
-                pass
+                self.delayTimer = self.V[(0x0F00 & op_code) >> 8]
 
             elif (0x00FF & op_code) == 0x0018:
                 self.delay_timer = self.V[(0x0F00 & op_code) >> 8]
@@ -160,10 +161,14 @@ class Chip8:
                 self.I += self.V[(0x0F00 & op_code) >> 8]
 
             elif (0x00FF & op_code) == 0x0033:
-                pass
+                self.memory[self.index] = int(self.V[(0x0F00 & op_code) >> 8] / 100)
+                self.memory[self.index + 1] = int((self.V[(0x0F00 & op_code) >> 8] % 100)/10)
+                self.memory[self.index + 2] = int(self.V[(0x0F00 & op_code) >> 8] % 10)
 
             elif (0x00FF & op_code) == 0x0055:
-                pass
+                for ri in range(self.V[(0x0F00 & op_code) >> 8]):
+                    self.memory[self.index + ri] = self.V[ri]
 
             elif (0x00FF & op_code) == 0x0065:
-                pass
+                for ri in range(self.V[(0x0F00 & op_code) >> 8]):
+                    self.V[ri] = self.memory[self.index + ri]
