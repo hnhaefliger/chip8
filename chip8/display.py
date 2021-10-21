@@ -21,17 +21,24 @@ class Display:
             for x in range(self.cols)
         ]
 
+    def mainloop(self):
+        self.paint()
+        self.root.after(1, self.mainloop)
+
     def set_pixel(self, x, y):
         self.pixels[y * self.cols + x] ^= 1
-        self.canvas.itemconfig(self.shapes[y * self.cols + x], fill='white' if self.pixels[y * self.cols + x] else 'black')
 
         return not(self.pixels[y * self.cols + x])
 
     def clear(self):
         self.pixels = [0b0 for i in range(self.cols * self.rows)]
 
-        for shape in self.shapes:
-            self.canvas.itemconfig(shape, fill='black')
+
+    def paint(self):
+        for x in range(self.cols):
+            for y in range(self.rows):
+                self.canvas.itemconfig(self.shapes[y * self.cols + x], fill='white' if self.pixels[y * self.cols + x] else 'black')
+
 
     def draw(self, x, y, height):
         collision = False

@@ -1,5 +1,7 @@
 from .display import Display
 import random
+import threading
+import time
 
 class Chip8:
     # CPU
@@ -42,7 +44,7 @@ class Chip8:
 
     # Other
     paused = False
-    speed = 1
+    speed = 0.0001
 
     def __init__(self, rom):
         with open(rom, 'rb') as f:
@@ -50,8 +52,14 @@ class Chip8:
                 self.memory[i + 0x200] = byte
 
     def start(self):
-        self.cycle()
+        threading.Thread(target=self.run, daemon=True).start()
+        self.display.mainloop()
         self.display.root.mainloop()
+
+    def run(self):
+        while True:
+            self.cycle()
+            time.sleep(self.speed)
 
     def cycle(self):
         op_code = (self.memory[self.pc] << 8) | self.memory[self.pc+1]
@@ -187,7 +195,7 @@ class Chip8:
                 self.sound_timer = self.V[x]
 
             elif (0x00FF & op_code) == 0x001E:
-                self.index = self.V[x]
+                self.index += self.V[x]
 
             elif (0x00FF & op_code) == 0x0029:
                 self.index += self.V[x] * 5
@@ -198,11 +206,11 @@ class Chip8:
                 self.memory[self.index + 2] = int(self.V[x] % 10)
 
             elif (0x00FF & op_code) == 0x0055:
-                for ri in range(x):
+                for ri in range(x+1):
                     self.memory[self.index + ri] = self.V[ri]
 
             elif (0x00FF & op_code) == 0x0065:
-                for ri in range(x):
+                for ri in range(x+1):
                     self.V[ri] = self.memory[self.index + ri]
 
         if not(self.paused):
@@ -211,5 +219,3 @@ class Chip8:
 
             if self.sound_timer > 0:
                 self.sound_timer -= 1
-
-        self.display.root.after(self.speed, self.cycle)
