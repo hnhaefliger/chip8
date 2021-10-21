@@ -13,4 +13,3 @@ test.start()
 
 ### To-do:
 - [ ] Implement keyboard.
-- [ ] Fix display flicker.
