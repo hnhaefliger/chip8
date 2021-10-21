@@ -63,7 +63,6 @@ class Chip8:
 
     def cycle(self):
         op_code = (self.memory[self.pc] << 8) | self.memory[self.pc+1]
-        print(hex(op_code))
         x = (0x0F00 & op_code) >> 8
         y = (0x00F0 & op_code) >> 4
         self.pc += 2
