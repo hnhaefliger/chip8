@@ -44,7 +44,7 @@ class Chip8:
 
     # Other
     paused = False
-    speed = 0.0001
+    speed = 0.001
 
     def __init__(self, rom):
         with open(rom, 'rb') as f:
@@ -63,7 +63,7 @@ class Chip8:
 
     def cycle(self):
         op_code = (self.memory[self.pc] << 8) | self.memory[self.pc+1]
-        #print(hex(op_code))
+        print(hex(op_code))
         x = (0x0F00 & op_code) >> 8
         y = (0x00F0 & op_code) >> 4
         self.pc += 2
@@ -73,7 +73,7 @@ class Chip8:
                 self.display.clear()
 
             elif (0xFFFF & op_code) == 0x00EE:
-                self.stack.pop(-1)
+                self.pc = self.stack.pop(-1)
 
             else:
                 pass
