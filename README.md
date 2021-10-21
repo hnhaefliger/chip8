@@ -2,6 +2,8 @@
 
 A chip-8 emulator written in python.
 
+Based on [this](http://devernay.free.fr/hacks/chip8/C8TECH10.HTM) spec.
+
 ```python3
 import chip8
 
