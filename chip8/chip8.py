@@ -37,19 +37,25 @@ class Chip8:
     sound_timer = 0
 
     # Keyboard
-    key = 0
-
-    # Display
-    display = Display()
+    keyboard = [False for i in range(17)]
 
     # Other
     paused = False
-    speed = 0.001
+    speed = 0.002
 
     def __init__(self, rom):
+        self.display = Display(keyboard=self.set_keyboard)
+
         with open(rom, 'rb') as f:
             for i, byte in enumerate(f.read()):
                 self.memory[i + 0x200] = byte
+
+    def set_keyboard(self, i, value):
+        self.keyboard[i] = value
+
+        if self.paused and value:
+            self.V[self.key] = i
+            self.paused = False
 
     def start(self):
         threading.Thread(target=self.run, daemon=True).start()
@@ -58,7 +64,9 @@ class Chip8:
 
     def run(self):
         while True:
-            self.cycle()
+            if not self.paused:
+                self.cycle()
+
             time.sleep(self.speed)
 
     def cycle(self):
@@ -101,6 +109,7 @@ class Chip8:
 
         elif (0xF000 & op_code) == 0x7000:
             self.V[x] += (0x00FF & op_code)
+            self.V[x] &= 0xFF
 
         elif (0xF000 & op_code) == 0x8000:
             if (0x000F & op_code) == 0x0000:
@@ -173,11 +182,11 @@ class Chip8:
 
         elif (0xF000 & op_code) == 0xE000:
             if (0x00FF & op_code) == 0x009E:
-                if self.key == self.V[x]:
+                if self.keyboard[self.V[x]]:
                     self.pc += 2
 
             elif (0x00FF & op_code) == 0x00A1:
-                if self.key != self.V[x]:
+                if not(self.keyboard[self.V[x]]):
                     self.pc += 2
 
         elif (0xF000 & op_code) == 0xF000:
@@ -186,6 +195,7 @@ class Chip8:
 
             elif (0x00FF & op_code) == 0x000A:
                 self.paused = True
+                self.key = x
 
             elif (0x00FF & op_code) == 0x0015:
                 self.delay_timer = self.V[x]

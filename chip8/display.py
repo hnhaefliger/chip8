@@ -1,5 +1,24 @@
 import tkinter as tk
 
+keymap = {
+    '1': 0x1,
+    '2': 0x2,
+    '3': 0x3,
+    '4': 0xC,
+    'q': 0x4,
+    'w': 0x5,
+    'e': 0x6,
+    'r': 0xD,
+    'a': 0x7,
+    's': 0x8,
+    'd': 0x9,
+    'f': 0xE,
+    'z': 0xA,
+    'x': 0x0,
+    'c': 0xB,
+    'v': 0xF,
+}
+
 class Display:
     cols = 64
     rows = 32
@@ -14,12 +33,22 @@ class Display:
 
     canvas.pack()
 
-    def __init__(self):
+    def __init__(self, keyboard):
         self.shapes = [
             self.canvas.create_rectangle(x*self.scale, y*self.scale, (x+1)*self.scale, (y+1)*self.scale, fill='black')
             for y in range(self.rows)
             for x in range(self.cols)
         ]
+
+        self.keyboard = keyboard
+        self.root.bind('<KeyPress>', self.keypress)
+        self.root.bind('<KeyRelease>', self.keyrelease)
+
+    def keypress(self, event):
+        self.keyboard(keymap[event.keysym], True)
+
+    def keyrelease(self, event):
+        self.keyboard(keymap[event.keysym], False)
 
     def mainloop(self):
         self.paint()
