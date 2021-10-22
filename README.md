@@ -12,6 +12,3 @@ test.start()
 ```
 
 ![](space-invader.png?raw=true)
-
-### To-do:
-- [ ] Implement keyboard.
